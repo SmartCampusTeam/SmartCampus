@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SmartCampus | Espace enseignant</title>
+  <link rel="icon" href="/img/logo-smartcampus.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css'">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-ensa"><img src="/img/logo-ensa.png" alt="ENSA Khouribga" onerror="this.parentElement.style.display='none'"></div>
+      <div class="brand-app">
+        <img src="/img/logo-smartcampus.svg" alt="" width="40" height="40">
+        <div><b>SmartCampus</b><small>ENSA Khouribga</small></div>
+      </div>
+    </div>
+    <nav class="nav">
+      <button data-view="dashboard" data-ico="home"><span>Tableau de bord</span></button>
+      <button data-view="planning" data-ico="calendar"><span>Emploi du temps</span></button>
+      <button data-view="plan" data-ico="map"><span>Carte et réservation</span></button>
+      <button data-view="reservations" data-ico="list"><span>Mes réservations</span></button>
+      <button data-view="annonces" data-ico="send"><span>Annonces étudiants</span></button>
+      <button data-view="notifications" data-ico="bell"><span>Notifications</span><em id="badge" class="count hidden"></em></button>
+      <button data-view="profil" data-ico="user"><span>Mon profil</span></button>
+    </nav>
+    <div class="side-foot">
+      <button id="logout" data-ico="logout"><span>Déconnexion</span></button>
+      <small>Université Sultan Moulay Slimane</small>
+    </div>
+  </aside>
+
+  <div class="content">
+    <header class="topbar">
+      <div><h1 id="pageTitle"></h1><p id="pageSub"></p></div>
+      <div class="top-right">
+        <button class="icon-btn bell" id="bell" title="Notifications"><em id="bellDot" class="dot hidden"></em></button>
+        <div class="user-chip">
+          <div class="avatar" id="avatar"></div>
+          <div><b id="userName"></b><small id="userRole"></small></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section id="view-dashboard" class="view"></section>
+      <section id="view-planning" class="view hidden"></section>
+
+      <section id="view-plan" class="view hidden">
+        <div class="card toolbar">
+          <label>Date<input type="date" id="pDate"></label>
+          <label>Début<input type="time" id="pDebut"></label>
+          <label>Fin<input type="time" id="pFin"></label>
+          <label>Type de salle
+            <select id="pType">
+              <option value="">Tous les types</option>
+              <option value="AMPHI">Amphithéâtre</option>
+              <option value="SALLE_COURS">Salle de cours</option>
+              <option value="LABO">Laboratoire</option>
+              <option value="SOUTENANCE">Salle de soutenance</option>
+              <option value="REUNION">Salle de réunion</option>
+            </select>
+          </label>
+          <label>Capacité min.<input type="number" id="pCap" min="0" value="0" style="width:100px"></label>
+          <div class="stat-pill" id="planStats"></div>
+        </div>
+        <div class="floors" id="floors"></div>
+        <div class="legend">
+          <span><i style="background:#16a34a"></i>Libre</span>
+          <span><i style="background:#d97706"></i>Demandes en attente</span>
+          <span><i style="background:#dc2626"></i>Occupée</span>
+          <span><i style="background:#94a3b8"></i>Hors critères</span>
+        </div>
+        <div class="card mapbox"><div id="map"></div></div>
+        <p class="muted">Toutes les salles de l'étage choisi sont dessinées sur la carte. Zoomez pour voir leurs noms, survolez une salle pour ses détails, cliquez pour réserver. Le fond de carte se change avec l'icône en haut à droite.</p>
+        <div id="roomList"></div>
+      </section>
+
+      <section id="view-reservations" class="view hidden"></section>
+      <section id="view-annonces" class="view hidden"></section>
+      <section id="view-notifications" class="view hidden"></section>
+      <section id="view-profil" class="view hidden"></section>
+    </main>
+  </div>
+</div>
+
+<div id="tip" class="hidden"></div>
+
+<div id="dialog" class="modal hidden"><div class="card dialog" id="dialogBody"></div></div>
+
+<div id="modal" class="modal hidden">
+  <form id="resaForm" class="card dialog wide">
+    <div class="dlg-head"><h3>Demande de réservation : <span id="mSalle"></span></h3><button type="button" class="icon-btn" id="mClose" aria-label="Fermer">✕</button></div>
+    <div class="room-card" id="mInfo"></div>
+    <p class="alert warn hidden" id="mWarn"></p>
+
+    <div class="grid2">
+      <label>Enseignant<input id="mProf" readonly></label>
+      <label>Matière ou thème
+        <input id="mMatiere" list="matieres" required maxlength="120" placeholder="Ex. : DevOps, intégration continue">
+        <datalist id="matieres"></datalist></label>
+      <label>Niveau / groupe<select id="mNiveau" required></select></label>
+      <label>Nombre de participants<input type="number" id="mNb" min="1" required></label>
+      <label>Date<input type="date" id="mDate" required></label>
+      <label>Type de réservation
+        <select id="mType">
+          <option value="COURS_RATTRAPAGE">Rattrapage de cours</option>
+          <option value="REUNION">Réunion</option>
+          <option value="FORMATION">Formation</option>
+          <option value="SOUTENANCE_THESE">Soutenance de thèse (jury)</option>
+        </select></label>
+      <label>Heure de début<input type="time" id="mDebut" min="08:00" max="20:00" required></label>
+      <label>Heure de fin<input type="time" id="mFin" min="08:00" max="20:00" required></label>
+    </div>
+    <p class="hint" id="mHint"></p>
+
+    <label>Justification de la demande
+      <textarea id="mJustif" rows="4" required minlength="20" maxlength="1000"
+        placeholder="Expliquez pourquoi cette réservation est nécessaire (séance manquée, examen proche, matériel requis…). L'administration s'appuiera sur ce texte pour arbitrer."></textarea>
+      <small id="mCount"></small></label>
+
+    <label class="check"><input type="checkbox" id="mUrgent">
+      <span>Demande urgente<small>Elle sera examinée en priorité par l'administration.</small></span></label>
+    <label class="check"><input type="checkbox" id="mNotif">
+      <span>Informer mes étudiants dès la confirmation<small>Les étudiants du niveau choisi reçoivent la date et la salle.</small></span></label>
+
+    <div id="mSugg" class="sugg hidden"></div>
+    <p class="muted">Réservations possibles du lundi au samedi, de 08:00 à 20:00. Statut initial : en attente de validation.</p>
+    <div class="actions">
+      <button type="button" id="mCancel" class="btn ghost">Annuler</button>
+      <button class="btn">Envoyer la demande</button>
+    </div>
+  </form>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>window.L || document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"><\/script>')</script>
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/map.js"></script>
+</body>
+</html>

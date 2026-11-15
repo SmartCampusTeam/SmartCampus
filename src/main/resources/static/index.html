@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SmartCampus | ENSA Khouribga</title>
+  <meta name="description" content="Réservez les salles de l'ENSA Khouribga : carte du campus, demandes justifiées, réponses en temps réel.">
+  <link rel="icon" href="/img/logo-smartcampus.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Palette : bleu marine, bleu, gris. Vert / orange / rouge uniquement pour l'état des salles. */
+    @property --c{syntax:"<color>";inherits:true;initial-value:#16a34a}
+    @property --h{syntax:"<length>";inherits:true;initial-value:0px}
+    :root{--font:"Inter","Segoe UI",system-ui,sans-serif;
+      --bg:#f4f6f9;--surface:#fff;--ink:#0b1f3a;--text:#1f2937;--muted:#5b6678;--line:#dfe4ec;
+      --primary:#2457d6;--primary-d:#1b44ab;--ok:#16a34a;--warn:#d97706;--ko:#dc2626}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}
+    body{margin:0;font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+    h1,h2,h3{margin:0;color:var(--ink);font-family:var(--font);font-weight:700;letter-spacing:-.02em}
+    a{color:inherit}
+    :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+    /* En-tête */
+    .top{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 6vw;background:var(--surface);border-bottom:1px solid var(--line)}
+    .logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+    .logo .ensa{padding-right:12px;border-right:1px solid var(--line)}.logo .ensa img{display:block;height:34px}
+    .logo b{font-size:19px;color:var(--ink)}
+    .top nav{display:flex;gap:28px;font-size:14.5px}.top nav a{text-decoration:none;color:var(--muted)}.top nav a:hover{color:var(--primary)}
+    .cta{background:var(--primary);color:#fff;border-radius:8px;padding:9px 18px;text-decoration:none;font-weight:600;font-size:14px}.cta:hover{background:var(--primary-d)}
+
+    /* Haut de page */
+    .hero{display:grid;grid-template-columns:1.1fr 1fr;gap:64px;align-items:center;padding:64px 6vw 72px}
+    .hero h1{font-size:clamp(32px,4.2vw,52px);line-height:1.1;margin-bottom:18px}
+    .lead{font-size:18px;color:var(--muted);max-width:540px;margin:0 0 24px}
+    .ticks{list-style:none;padding:0;margin:0 0 32px;display:grid;gap:10px}
+    .ticks li{padding-left:30px;position:relative}
+    .ticks li::before{content:"";position:absolute;left:0;top:4px;width:18px;height:18px;border-radius:50%;background:var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/11px no-repeat}
+    .live{display:flex;gap:36px;flex-wrap:wrap;padding-top:24px;border-top:1px solid var(--line)}
+    .live b{display:block;font-size:34px;color:var(--ink);line-height:1.1;font-weight:700}
+    .live span{font-size:13.5px;color:var(--muted)}
+    .bar{height:6px;border-radius:6px;background:#dde3ec;overflow:hidden;margin-top:18px;max-width:420px}
+    .bar i{display:block;height:100%;width:0;background:var(--ok);transition:width 1.2s ease}
+
+    /* Connexion */
+    .login{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:36px 34px 30px;box-shadow:0 1px 2px rgba(11,31,58,.05),0 24px 48px -12px rgba(11,31,58,.18)}
+    .login h2{font-size:26px;margin-bottom:4px}
+    .login p.sub{margin:0 0 22px;color:var(--muted)}
+    label{display:block;font-size:13px;font-weight:600;color:#3d4757;margin:0 0 16px}
+    input{display:block;width:100%;margin-top:6px;padding:12px 14px;border:1px solid #c5ceda;border-radius:8px;font:inherit;background:#fff;color:var(--text)}
+    input:focus{outline:3px solid rgba(36,87,214,.18);border-color:var(--primary)}
+    .pw{position:relative}.pw button{position:absolute;right:10px;top:36px;background:none;border:0;color:var(--muted);cursor:pointer;font:inherit;font-size:13px}
+    .btn{width:100%;padding:13px;border:0;border-radius:8px;background:var(--primary);color:#fff;font:inherit;font-weight:600;font-size:15px;cursor:pointer;transition:background .15s}
+    .btn:hover{background:var(--primary-d)}.btn:disabled{opacity:.6;cursor:wait}
+    .err{display:none;background:#fee2e2;color:#991b1b;border-radius:8px;padding:10px 12px;margin:0 0 16px;font-size:13.5px}.err.show{display:block}
+    .already{display:none;background:#dcfce7;color:#166534;border-radius:8px;padding:10px 12px;margin:0 0 18px;font-size:14px}.already.show{display:block}
+    .already a{font-weight:600}
+    .demo{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+    .demo div{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .chipbtn{border:1px solid #c5ceda;background:#fff;color:var(--ink);border-radius:20px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}.chipbtn:hover{background:var(--bg)}
+
+    /* Section fonctionnement et scène 3D */
+    .dark{background:var(--ink);color:#c3cde0;padding:84px 6vw}
+    .dark h2{color:#fff;font-size:clamp(26px,3vw,38px);line-height:1.15;max-width:560px;margin-bottom:36px}
+    .story{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+    .steps{list-style:none;margin:0;padding:0;display:grid;gap:26px;counter-reset:s}
+    .steps li{display:grid;grid-template-columns:40px 1fr;gap:16px;counter-increment:s}
+    .steps li::before{content:counter(s);width:36px;height:36px;border-radius:50%;border:1px solid #4a6290;color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center}
+    .steps h3{color:#fff;font-size:17px;margin-bottom:4px}.steps p{margin:0;font-size:15px;color:#aab8d1}
+
+    .stage{background:radial-gradient(ellipse at 50% 40%,#17335e 0%,#0e2548 60%,#0b1f3a 100%);border:1px solid #20406e;border-radius:18px;padding:8px 8px 16px}
+    .scene{perspective:1600px;height:400px;display:flex;align-items:center;justify-content:center}
+    .iso{transform-style:preserve-3d;transform:rotateX(18deg) rotateZ(-8deg);transition:transform .9s cubic-bezier(.2,.7,.2,1)}
+    .iso.on{transform:rotateX(58deg) rotateZ(-38deg)}
+    .iso.follow{transition:transform .25s ease-out}
+    .blk{position:relative;transform-style:preserve-3d;transform:translateZ(var(--h))}
+    .blk::before,.blk::after{content:"";position:absolute}
+    .blk::after{left:0;top:100%;width:100%;height:var(--h);transform-origin:top;transform:rotateX(-90deg);background:color-mix(in srgb,var(--c),#000 30%)}
+    .blk::before{left:0;top:0;width:var(--h);height:100%;transform-origin:left;transform:rotateY(90deg);background:color-mix(in srgb,var(--c),#000 48%)}
+    .slab{--c:#dfe6f1;--h:14px;display:grid;grid-template-columns:repeat(5,62px);gap:12px;padding:16px;background:var(--c)}
+    .room{--h:var(--h0);--c:var(--ok);width:62px;height:62px;background:var(--c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28);transition:--c .6s,--h .2s}
+    .room:hover{--h:calc(var(--h0) + 12px)}
+    .room.A{--c:var(--warn)}.room.O{--c:var(--ko)}
+    .legend{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;font-size:13px;color:#aab8d1}
+    .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:7px;vertical-align:-1px}
+
+    /* Profils */
+    .s{padding:84px 6vw}
+    .s h2{font-size:clamp(26px,3vw,38px);max-width:620px;margin-bottom:28px;line-height:1.15}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+    .tab{border:1px solid #c5ceda;background:transparent;border-radius:30px;padding:9px 20px;font:inherit;font-weight:600;color:var(--ink);cursor:pointer}
+    .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+    .role{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:30px 34px;max-width:760px}
+    .role h3{font-size:22px;margin-bottom:14px}.role ul{margin:0;padding-left:20px;display:grid;gap:10px}
+
+    footer{padding:30px 6vw;background:#08172e;color:#9fb0cc;font-size:14px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+    footer b{color:#fff}
+
+    @media(max-width:900px){.hero,.story{grid-template-columns:1fr;gap:40px}.top nav{display:none}.hero{padding-top:40px}.scene{transform:scale(.78);height:340px}}
+    @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="#haut">
+    <span class="ensa"><img src="/img/logo-ensa.png" alt="ENSA Khouribga" onerror="this.parentElement.style.display='none'"></span>
+    <img src="/img/logo-smartcampus.svg" alt="" width="34" height="34"><b>SmartCampus</b>
+  </a>
+  <nav><a href="#fonctionnement">Fonctionnement</a><a href="#profils">Profils</a></nav>
+  <a class="cta" href="#connexion">Se connecter</a>
+</header>
+
+<main id="haut">
+  <section class="hero">
+    <div>
+      <h1>Réservez une salle du campus en quelques minutes</h1>
+      <p class="lead">SmartCampus rassemble enseignants, étudiants et administration autour d'une même carte : on voit les salles disponibles, on justifie sa demande et chacun est informé de la réponse.</p>
+      <ul class="ticks">
+        <li>Une carte du campus, salle par salle</li>
+        <li>Des demandes justifiées, examinées par ordre de priorité</li>
+        <li>Les étudiants informés dès qu'un rattrapage est confirmé</li>
+      </ul>
+      <div class="live" aria-live="polite">
+        <div><b id="nLibres">–</b><span>salles libres en ce moment</span></div>
+        <div><b id="nSalles">–</b><span>salles dans <span id="nBat">–</span> bâtiments</span></div>
+        <div><b id="nTraitees">–</b><span>demandes traitées</span></div>
+        <div><b id="nAttente">–</b><span>en attente de réponse</span></div>
+      </div>
+      <div class="bar" title="Part des salles libres en ce moment"><i id="barre"></i></div>
+    </div>
+
+    <aside class="login" id="connexion">
+      <h2>Connexion</h2>
+      <p class="sub">Utilisez votre compte de l'école.</p>
+      <div class="already" id="already"></div>
+      <form id="f" novalidate>
+        <label>Adresse e-mail<input type="email" id="email" required autocomplete="username" placeholder="prenom.nom@ensa.ma"></label>
+        <label class="pw">Mot de passe<input type="password" id="password" required autocomplete="current-password"><button type="button" id="voir">Afficher</button></label>
+        <div class="err" id="err" role="alert"></div>
+        <button class="btn" id="go">Se connecter</button>
+      </form>
+      <div class="demo">Comptes de démonstration
+        <div>
+          <button type="button" class="chipbtn" data-e="prof@ensa.ma" data-p="prof123">Enseignant</button>
+          <button type="button" class="chipbtn" data-e="hajar.ziani@etu.ensa.ma" data-p="etu123">Étudiant</button>
+          <button type="button" class="chipbtn" data-e="admin@ensa.ma" data-p="admin123">Administration</button>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="dark" id="fonctionnement">
+    <h2>Une seule carte pour réserver, décider et informer</h2>
+    <div class="story">
+      <ol class="steps">
+        <li><div><h3>Choisir un créneau</h3><p>Sélectionnez la date et l'heure : les salles libres, occupées ou déjà demandées s'affichent sur la carte.</p></div></li>
+        <li><div><h3>Justifier la demande</h3><p>Matière, groupe, nombre de participants et motif : l'administration dispose de tout ce qu'il faut pour décider.</p></div></li>
+        <li><div><h3>Obtenir une décision</h3><p>Les demandes sont triées par priorité et les conflits de salle sont signalés avant l'arbitrage.</p></div></li>
+        <li><div><h3>Informer les étudiants</h3><p>À la confirmation, le groupe concerné reçoit la date, l'heure et la salle.</p></div></li>
+      </ol>
+      <div class="stage">
+        <div class="scene" id="scene" role="img" aria-label="Maquette 3D du campus : salles libres, en attente ou occupées"><div class="iso" id="iso"></div></div>
+        <div class="legend"><span><i style="background:#16a34a"></i>Libre</span><span><i style="background:#d97706"></i>En attente</span><span><i style="background:#dc2626"></i>Occupée</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="s" id="profils">
+    <h2>Chaque profil retrouve ce dont il a besoin</h2>
+    <div class="tabs" role="tablist">
+      <button class="tab on" data-r="ens" role="tab">Enseignants</button>
+      <button class="tab" data-r="etu" role="tab">Étudiants</button>
+      <button class="tab" data-r="adm" role="tab">Administration</button>
+    </div>
+    <div class="role" id="role"></div>
+  </section>
+</main>
+
+<footer>
+  <div><b>SmartCampus</b><br>École Nationale des Sciences Appliquées de Khouribga, Université Sultan Moulay Slimane</div>
+  <div>Projet académique, module DevOps et transformation digitale, filière MGSI</div>
+</footer>
+
+<script>
+  const $ = s => document.querySelector(s);
+
+  /* Chiffres en direct */
+  function compte(el, cible) {
+    const t0 = performance.now(), d = 1100;
+    (function pas(t) {
+      const p = Math.min((t - t0) / d, 1);
+      el.textContent = Math.round(cible * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(pas);
+    })(t0);
+  }
+
+  /* Maquette 3D : 20 salles, hauteurs fixes, états tirés selon la part de salles libres */
+  let ratioLibres = 0.55;
+  const HAUTEURS = [26, 14, 38, 20, 30, 16, 34, 24, 12, 28, 18, 36, 22, 32, 14, 26, 20, 38, 16, 30];
+  const ETATS = { L: 'libre', A: 'en attente', O: 'occupée' };
+  const etatAleatoire = () => { const x = Math.random(); return x < ratioLibres * 0.9 ? 'L' : x < ratioLibres * 0.9 + 0.1 ? 'A' : 'O'; };
+  const nomSalle = i => 'Salle ' + 'ABCD'[Math.floor(i / 5)] + ((i % 5) + 1);
+  let salles = [];
+
+  function majSalle(i, e) {
+    salles[i].className = 'blk room ' + e;
+    salles[i].title = nomSalle(i) + ' : ' + ETATS[e];
+  }
+
+  function construireScene() {
+    if (salles.length) return;
+    const iso = $('#iso'), dalle = document.createElement('div');
+    dalle.className = 'blk slab';
+    salles = HAUTEURS.map((h, i) => {
+      const r = document.createElement('div');
+      r.style.setProperty('--h0', h + 'px');
+      dalle.appendChild(r);
+      return r;
+    });
+    salles.forEach((_, i) => majSalle(i, etatAleatoire()));
+    iso.appendChild(dalle);
+    requestAnimationFrame(() => requestAnimationFrame(() => iso.classList.add('on')));
+    setTimeout(() => iso.classList.add('follow'), 1000);
+    setInterval(() => majSalle(Math.floor(Math.random() * salles.length), etatAleatoire()), 1300);
+
+    /* Inclinaison légère selon la souris */
+    const scene = $('#scene');
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      scene.addEventListener('mousemove', e => {
+        const b = scene.getBoundingClientRect();
+        const x = (e.clientX - b.left) / b.width - .5, y = (e.clientY - b.top) / b.height - .5;
+        iso.style.transform = `rotateX(${58 - y * 8}deg) rotateZ(${-38 + x * 12}deg)`;
+      });
+      scene.addEventListener('mouseleave', () => { iso.style.transform = ''; });
+    }
+  }
+
+  fetch('/api/public/apercu').then(r => r.ok ? r.json() : Promise.reject()).then(a => {
+    compte($('#nLibres'), a.sallesLibres); compte($('#nSalles'), a.salles); compte($('#nTraitees'), a.reservationsTraitees);
+    compte($('#nAttente'), a.enAttente); $('#nBat').textContent = a.batiments;
+    const total = a.sallesLibres + a.sallesOccupees;
+    ratioLibres = total ? a.sallesLibres / total : 0.55;
+    $('#barre').style.width = Math.round(ratioLibres * 100) + '%';
+    construireScene();
+  }).catch(() => {
+    ['#nLibres', '#nSalles', '#nTraitees', '#nAttente', '#nBat'].forEach(s => $(s).textContent = '–');
+    construireScene();
+  });
+
+  /* Onglets des profils */
+  const ROLES = {
+    ens: { t: 'Pour les enseignants', l: ['Repérer une salle libre sur la carte du campus', 'Justifier sa demande et signaler l’urgence', 'Suivre la réponse de l’administration en temps réel', 'Informer ses étudiants dès la confirmation'] },
+    etu: { t: 'Pour les étudiants', l: ['Recevoir les rattrapages et changements de salle dès leur confirmation', 'Consulter l’emploi du temps de son groupe', 'Lire les annonces des enseignants au même endroit'] },
+    adm: { t: 'Pour l’administration', l: ['Recevoir les demandes triées par priorité', 'Voir les conflits de salle avant de décider', 'Lire la justification et le niveau d’urgence de chaque demande', 'Prévenir automatiquement la personne concernée de chaque décision'] }
+  };
+  function role(r) {
+    const d = ROLES[r];
+    $('#role').innerHTML = `<h3>${d.t}</h3><ul>${d.l.map(x => `<li>${x}</li>`).join('')}</ul>`;
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.r === r));
+  }
+  document.querySelectorAll('.tab').forEach(b => b.onclick = () => role(b.dataset.r));
+  role('ens');
+
+  /* Connexion */
+  const destination = role => role === 'ADMIN' ? '/admin.html' : role === 'ETUDIANT' ? '/etudiant.html' : '/professeur.html';
+  function erreur(msg) { const e = $('#err'); e.textContent = msg; e.classList.add('show'); $('#go').disabled = false; $('#go').textContent = 'Se connecter'; }
+
+  document.querySelectorAll('.chipbtn').forEach(b => b.onclick = () => { $('#email').value = b.dataset.e; $('#password').value = b.dataset.p; $('#err').classList.remove('show'); });
+  $('#voir').onclick = () => { const p = $('#password'); const cache = p.type === 'password'; p.type = cache ? 'text' : 'password'; $('#voir').textContent = cache ? 'Masquer' : 'Afficher'; };
+
+  $('#f').onsubmit = async e => {
+    e.preventDefault();
+    $('#err').classList.remove('show');
+    if (!$('#email').value.trim() || !$('#password').value) return erreur('Renseignez votre adresse e-mail et votre mot de passe.');
+    $('#go').disabled = true; $('#go').textContent = 'Connexion en cours';
+    try {
+      const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ email: $('#email').value.trim(), password: $('#password').value }) });
+      if (res.status === 401) return erreur('Adresse e-mail ou mot de passe incorrect.');
+      if (!res.ok) return erreur('Le serveur a rencontré un problème (code ' + res.status + '). Réessayez dans un instant.');
+      const p = await (await fetch('/api/profil')).json();
+      location.href = destination(p.role);
+    } catch (err) {
+      erreur("Serveur injoignable : vérifiez que l'application est bien démarrée.");
+    }
+  };
+
+  /* Déjà connecté */
+  fetch('/api/profil').then(r => r.ok ? r.json() : null).then(p => {
+    if (!p) return;
+    const a = $('#already');
+    a.innerHTML = `Vous êtes déjà connecté(e) : <b>${p.prenom} ${p.nom}</b>. <a href="${destination(p.role)}">Continuer</a>`;
+    a.classList.add('show');
+  }).catch(() => {});
+</script>
+</body>
+</html>

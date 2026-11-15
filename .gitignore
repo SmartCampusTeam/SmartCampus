@@ -1,1 +1,7 @@
 .sf/
+target/
+data/
+target_old/
+*.log
+.idea/
+*.iml

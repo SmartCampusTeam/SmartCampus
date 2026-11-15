@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SmartCampus | Administration</title>
+  <link rel="icon" href="/img/logo-smartcampus.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="admin-bar">
+  <div class="brand-app"><img src="/img/logo-smartcampus.svg" alt="" width="38" height="38"><div><b>SmartCampus</b><small>Administration</small></div></div>
+  <button class="btn ghost-light" id="logout">Déconnexion</button>
+</header>
+<main class="main" style="max-width:1100px;margin:auto">
+  <div class="cols" style="grid-template-columns:2fr 1fr">
+    <div>
+      <h2 style="margin-bottom:4px">Demandes de réservation en attente</h2>
+      <p class="muted" style="margin:0 0 20px">Triées par priorité (de 1 à 5). Mise à jour automatique toutes les 10 secondes. En cas de demandes concurrentes, confirmez la plus prioritaire et refusez les autres.</p>
+      <div id="liste"></div>
+    </div>
+    <div><div class="card"><h3>Mes notifications</h3><div id="notifs"></div>
+      <p style="margin:12px 0 0"><button class="btn ghost sm" id="lues">Tout marquer comme lu</button></p></div></div>
+  </div>
+</main>
+
+<script src="/js/api.js"></script>
+<script>
+  const T = { COURS_RATTRAPAGE: 'Rattrapage', REUNION: 'Réunion', FORMATION: 'Formation', SOUTENANCE_THESE: 'Soutenance', ACTIVITE_PARASCOLAIRE: 'Parascolaire' };
+  const f = d => new Date(d).toLocaleString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  let avant = null;
+
+  async function charger() {
+    const [l, notifs] = await Promise.all([api('/api/admin/reservations'), api('/api/notifications')]);
+    const nonLues = notifs.filter(n => !n.lue).length;
+    if (avant !== null && nonLues > avant) toast('Nouvelle demande reçue');
+    avant = nonLues;
+
+    $('#liste').innerHTML = l.map(r => `
+      <div class="card resa">
+        <div style="flex:1">
+          <h3 style="margin:0 0 4px">${esc(r.salle)}, ${esc(r.matiere)} <span class="chip EN_ATTENTE">Priorité ${r.priorite}/5</span>
+            ${r.urgent ? '<span class="chip urgent">Urgent</span>' : ''}</h3>
+          <div>${f(r.dateDebut)} à ${new Date(r.dateFin).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })},
+            ${esc(r.demandeur)}, ${T[r.type]}, ${esc(r.niveau)}, ${r.nbParticipants} pers.</div>
+          <div class="callout" style="margin:10px 0 0"><b>Justification</b><p>${esc(r.justification)}</p></div>
+          ${r.concurrentes ? `<p class="alert warn" style="margin:10px 0 0">${r.concurrentes} demande(s) concurrente(s) sur ce créneau : arbitrage requis</p>` : ''}
+          ${r.notifierEtudiants ? '<small>Les étudiants du niveau seront prévenus à la confirmation.</small>' : ''}
+        </div>
+        <div class="actions" style="flex-direction:column">
+          <button class="btn" onclick="decider(${r.id},'confirmer')">Confirmer</button>
+          <button class="btn danger" onclick="decider(${r.id},'refuser')">Refuser</button>
+        </div>
+      </div>`).join('') || '<div class="card"><p class="muted" style="margin:0">Aucune demande en attente.</p></div>';
+
+    $('#notifs').innerHTML = notifs.slice(0, 8).map(n => `<div class="notif ${n.lue ? '' : 'new'}" style="padding:10px 0">
+      <div><p style="font-size:14px">${esc(n.message)}</p><small class="muted">${f(n.dateEnvoi)}</small></div></div>`).join('')
+      || '<p class="muted">Aucune notification.</p>';
+  }
+
+  async function decider(id, action) {
+    let body;
+    if (action === 'refuser') {
+      const m = prompt('Motif du refus :');
+      if (!m) return;
+      body = JSON.stringify({ motif: m });
+    }
+    try { await api(`/api/admin/reservations/${id}/${action}`, { method: 'POST', body }); toast('Décision enregistrée et envoyée'); charger(); }
+    catch (e) { toast(e.message, 'ko'); }
+  }
+
+  $('#lues').onclick = async () => { await api('/api/notifications/lues', { method: 'POST' }); charger(); };
+  $('#logout').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/login.html'; };
+  api('/api/profil').then(p => {
+    if (p.role !== 'ADMIN') { location.href = p.role === 'ETUDIANT' ? '/etudiant.html' : '/professeur.html'; return; }
+    charger();
+    setInterval(() => charger().catch(() => {}), 10000);
+  });
+</script>
+</body>
+</html>

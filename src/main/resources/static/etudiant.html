@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SmartCampus | Espace étudiant</title>
+  <link rel="icon" href="/img/logo-smartcampus.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="admin-bar">
+  <div class="brand-app"><img src="/img/logo-smartcampus.svg" alt="" width="38" height="38"><div><b>SmartCampus</b><small>Espace étudiant</small></div></div>
+  <div class="top-right">
+    <div class="user-chip" style="color:#fff"><div class="avatar" id="avatar"></div><div><b id="nom"></b><small id="groupe" style="color:#c3cde0"></small></div></div>
+    <button class="btn ghost-light" id="logout">Déconnexion</button>
+  </div>
+</header>
+
+<main class="main" style="max-width:1100px;margin:auto">
+  <section class="hero">
+    <div><span class="hand">Bonjour</span><h2 id="titre"></h2><p>Voici ce qui change pour votre groupe.</p></div>
+  </section>
+  <div class="cols">
+    <div>
+      <div class="toolbar-line"><h3 style="margin:0">Notifications <span id="nb" class="chip urgent hidden"></span></h3>
+        <button class="btn ghost sm" id="lues">Tout marquer comme lu</button></div>
+      <div class="card flush" id="notifs"></div>
+    </div>
+    <div>
+      <div class="card"><h3>Séances exceptionnelles annoncées</h3><div id="events"></div></div>
+      <div class="card" style="margin-top:20px"><h3>Emploi du temps de mon groupe</h3><div id="edt"></div></div>
+    </div>
+  </div>
+</main>
+
+<script src="/js/api.js"></script>
+<script>
+  const JOURS = { MONDAY: 'Lundi', TUESDAY: 'Mardi', WEDNESDAY: 'Mercredi', THURSDAY: 'Jeudi', FRIDAY: 'Vendredi', SATURDAY: 'Samedi' };
+  const hm = t => t.slice(0, 5);
+  const f = d => new Date(d).toLocaleString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  let profil = null, avant = null;
+
+  async function charger() {
+    const [notifs, events] = await Promise.all([api('/api/notifications'), api('/api/etudiant/evenements')]);
+    const nonLues = notifs.filter(n => !n.lue).length;
+    $('#nb').textContent = nonLues + ' nouvelle(s)';
+    $('#nb').classList.toggle('hidden', !nonLues);
+    if (avant !== null && nonLues > avant) toast('Nouvelle notification reçue');
+    avant = nonLues;
+    $('#notifs').innerHTML = notifs.map(n => `<div class="notif ${n.lue ? '' : 'new'}">
+      <div class="n-ico blue">${ico('bell', 18)}</div><div><p>${esc(n.message)}</p><small class="muted">${f(n.dateEnvoi)}</small></div></div>`).join('')
+      || '<p class="muted" style="padding:18px">Aucune notification pour le moment.</p>';
+    $('#events').innerHTML = events.map(e => `<div class="row-ev"><div class="date-chip"><b>${new Date(e.dateDebut).getDate()}</b>
+      <span>${new Date(e.dateDebut).toLocaleDateString('fr-FR', { month: 'short' })}</span></div>
+      <div><b>${esc(e.objet)}</b><small>${f(e.dateDebut)}, salle ${esc(e.salle)}, ${esc(e.professeur)}</small></div></div>`).join('')
+      || '<p class="muted">Aucune séance exceptionnelle annoncée.</p>';
+  }
+
+  async function edt() {
+    const l = await api('/api/etudiant/emploi-du-temps');
+    $('#edt').innerHTML = Object.keys(JOURS).map(j => {
+      const s = l.filter(x => x.jour === j).sort((a, b) => a.heureDebut.localeCompare(b.heureDebut));
+      return s.length ? `<h4 style="margin:14px 0 4px">${JOURS[j]}</h4>` + s.map(x => `<div class="row-ev">
+        <div class="date-chip"><b>${hm(x.heureDebut)}</b></div><div><b>${esc(x.matiere)}</b><small>${hm(x.heureDebut)} à ${hm(x.heureFin)}, salle ${esc(x.salle)}, ${esc(x.professeur)}</small></div></div>`).join('') : '';
+    }).join('') || '<p class="muted">Aucun cours enregistré pour ce groupe.</p>';
+  }
+
+  async function init() {
+    try { profil = await api('/api/profil'); } catch (e) { return; }
+    if (profil.role === 'ADMIN') { location.href = '/admin.html'; return; }
+    if (profil.role !== 'ETUDIANT') { location.href = '/professeur.html'; return; }
+    $('#nom').textContent = profil.prenom + ' ' + profil.nom;
+    $('#groupe').textContent = profil.grade || '';
+    $('#avatar').textContent = (profil.prenom[0] + profil.nom[0]).toUpperCase();
+    $('#titre').textContent = profil.prenom + ' ' + profil.nom;
+    await Promise.all([charger(), edt()]);
+    setInterval(() => charger().catch(() => {}), 10000);
+  }
+  $('#lues').onclick = async () => { await api('/api/notifications/lues', { method: 'POST' }); charger(); };
+  $('#logout').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/login.html'; };
+  init();
+</script>
+</body>
+</html>
