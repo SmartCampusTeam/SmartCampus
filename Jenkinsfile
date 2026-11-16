@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        maven 'Maven' // Assure-toi que le nom correspond à ce que tu as dans Jenkins > Tools
+        maven 'Maven' 
     }
     stages {
         stage('Checkout') {
@@ -11,12 +11,12 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sh 'mvn -B clean package -DskipTests'
+                bat 'mvn -B clean package -DskipTests'
             }
         }
         stage('Test') {
             steps {
-                sh 'mvn -B test'
+                bat 'mvn -B test'
             }
         }
     }
